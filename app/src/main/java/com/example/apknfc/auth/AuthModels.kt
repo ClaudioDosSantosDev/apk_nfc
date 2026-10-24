@@ -8,7 +8,11 @@ package com.example.apknfc.auth
 data class LoginRequest(
     val username: String,
     val password: String,
-    val deviceId: String
+    val deviceId: String,
+    // Chave pública (Base64, X.509 DER, EC P-256) do Keystore do celular.
+    // O backend a guarda junto com o vínculo do dispositivo e a usa para
+    // verificar a assinatura do desafio do totem.
+    val publicKey: String? = null
 )
 
 /**

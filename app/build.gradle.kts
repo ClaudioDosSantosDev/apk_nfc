@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.apknfc"
-        minSdk = 24
+        minSdk = 30
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -36,6 +36,9 @@ android {
 }
 
 dependencies {
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.biometric:biometric:1.1.0")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

@@ -12,6 +12,7 @@ import kotlinx.coroutines.launch
  * A MainActivity decide o que mostrar com base nesse estado.
  */
 sealed class AuthUiState {
+    object CheckingSession : AuthUiState()
     object LoggedOut : AuthUiState()
     object Loading : AuthUiState()
     data class PendingApproval(val code: String) : AuthUiState()
@@ -20,22 +21,32 @@ sealed class AuthUiState {
 }
 
 class AuthViewModel(
-    private val repository: AuthRepository = AuthRepository()
+    private val repository: AuthRepository = AuthRepository(),
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<AuthUiState>(AuthUiState.LoggedOut)
+    private val _state = MutableStateFlow<AuthUiState>(AuthUiState.CheckingSession)
     val state: StateFlow<AuthUiState> = _state
 
-    // TODO: persistir token/userId (ex: DataStore) para não precisar logar
-    // toda vez que o app abrir — por enquanto fica só em memória.
-    private var sessionToken: String? = null
+    init {
+        // Ao abrir o app, verifica se já existe uma sessão salva
+        // em disco antes de mostrar a tela de login.
+        viewModelScope.launch {
+            val session = sessionManager.getSession()
+            _state.value = if (session != null) {
+                AuthUiState.LoggedIn(session.userId)
+            } else {
+                AuthUiState.LoggedOut
+            }
+        }
+    }
 
-    fun login(username: String, password: String, deviceId: String) {
+    fun login(username: String, password: String, deviceId: String, publicKey: String? = null) {
         _state.value = AuthUiState.Loading
         viewModelScope.launch {
-            when (val result = repository.login(username, password, deviceId)) {
+            when (val result = repository.login(username, password, deviceId, publicKey)) {
                 is LoginResult.Approved -> {
-                    sessionToken = result.token
+                    sessionManager.saveSession(result.userId, result.token)
                     _state.value = AuthUiState.LoggedIn(result.userId)
                 }
                 is LoginResult.PendingApproval -> {
@@ -60,7 +71,7 @@ class AuthViewModel(
                 delay(5000)
                 when (val result = repository.checkStatus(requestId)) {
                     is StatusResult.Approved -> {
-                        sessionToken = result.token
+                        sessionManager.saveSession(result.userId, result.token)
                         _state.value = AuthUiState.LoggedIn(result.userId)
                     }
                     StatusResult.Rejected -> {
@@ -78,6 +89,17 @@ class AuthViewModel(
                 }
             }
         }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            sessionManager.clearSession()
+            _state.value = AuthUiState.LoggedOut
+        }
+    }
+
+    fun showError(message: String) {
+        _state.value = AuthUiState.Error(message)
     }
 
     fun resetToLoggedOut() {

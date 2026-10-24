@@ -31,13 +31,18 @@ class AuthRepository(private val api: AuthApi = RetrofitClient.authApi) {
         private const val DEBUG_TOKEN = "debug-token"
     }
 
-    suspend fun login(username: String, password: String, deviceId: String): LoginResult {
+    suspend fun login(
+        username: String,
+        password: String,
+        deviceId: String,
+        publicKey: String? = null
+    ): LoginResult {
         if (username == DEBUG_USERNAME && password == DEBUG_PASSWORD) {
             return LoginResult.Approved(userId = DEBUG_USER_ID, token = DEBUG_TOKEN)
         }
 
         return try {
-            val response = api.login(LoginRequest(username, password, deviceId))
+            val response = api.login(LoginRequest(username, password, deviceId, publicKey))
             when (response.status) {
                 "approved" -> LoginResult.Approved(
                     userId = response.userId ?: return LoginResult.Error("Resposta sem userId"),

@@ -1,5 +1,6 @@
 package com.example.apknfc.auth
 
+import com.example.apknfc.qr.PresenceApi
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -17,11 +18,16 @@ object RetrofitClient {
 
     private const val BASE_URL = "http://192.168.0.10:8000/"
 
-    val authApi: AuthApi by lazy {
+    // Um único Retrofit, usado por todas as APIs do app
+    private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(AuthApi::class.java)
     }
+
+    val authApi: AuthApi by lazy { retrofit.create(AuthApi::class.java) }
+
+    // Presença por QR code (pacote qr)
+    val presenceApi: PresenceApi by lazy { retrofit.create(PresenceApi::class.java) }
 }
